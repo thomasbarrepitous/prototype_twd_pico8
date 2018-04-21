@@ -18,7 +18,7 @@ So this code is completly open-source but I don't think everyone will ever read 
 
 -- THANK YOU --
 
-If you checked this README you are interested in my work, I really appreciate that you're taking your time to see what I made.
+If you checked this README it's maybe becuase you are interested in my work, if that's the case don't hesitate to ask any questions at barrepitousthomas@gmail.com , I really appreciate that you're taking your time to see what I made.
 
 Thank you.
 
