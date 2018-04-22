@@ -21,6 +21,7 @@ x = 10  y = 112
 gravity = 0.9
 --in order to not spawn too many
 z_number = 0
+max_z_number = 5
 
 animation_speed = 3
 shooting_speed = 7
@@ -43,7 +44,8 @@ function make_actor(x, y)
  a.spr = 3
  a.frame = 0
  a.noise = 0
- a.hp = 5
+ a.hp = 7
+ a.invincible = false
  a.weapon = 1
  a.d_left = false
  a.d_right = false
@@ -59,6 +61,11 @@ end
 
 function make_zombie(x,y,speed)
 	local z={}
+	cpt=0
+	for z in all(zombie) do
+		cpt+=1
+	end
+	z.id = cpt+1
 	z.x = x
 	z.y = y
 	z.h = 8
@@ -138,8 +145,6 @@ function move_zombie()
 	elseif a.x>z.x then
 	--if to the left
 	 z.x -= z.accel
-	else
-		--dead ?
 	end
 end
 
@@ -184,8 +189,8 @@ if (a.y>=max_y) then jump=false end
 	 	 	 end
 	 	 	end
 	 	  jump=true
-	 	  if a.noise<86 then
-	 	 	 a.noise+=15
+	 	  if a.noise<92 then
+	 	 	 a.noise+=9
 	 	  else 
 	 	  	a.noise = 100
 	 	  end
@@ -215,9 +220,18 @@ if (a.y>=max_y) then jump=false end
 	 end
 	 
 	 --interact
-	 if btn(4) then
+	 if btn(10) then
 	 	-- to do
 	 end
+	 
+	 if player_zombie_collision() then
+			if not a.invincible then
+				a.hurt = true
+				a.hp-=1
+				last = time()
+				a.invincible = true
+			end
+		end
 end
 
 function shoot_left()
@@ -273,15 +287,15 @@ function zombie_moving()
 			del(zombie,z)
 		end
 	
-		if z.x < a.x-1 and zombie_obstacle_collision(z.accel*z.speed,0) then
+		if z.x < a.x-1 
+		--and zombie_obstacle_collision(z.accel*z.speed,0) and not zombie_zombie_collision()
+	 then
 			z.x+=z.accel*z.speed
-		elseif z.x > a.x+1 and zombie_obstacle_collision(-z.accel*z.speed,0) then
+		elseif z.x > a.x+1 
+		--and zombie_obstacle_collision(-z.accel*z.speed,0) and not zombie_zombie_collision()
+	 then
 			z.x-=z.accel*z.speed
-		elseif player_zombie_collision() then
-			a.hurt = true
-			a.hp-=1
-		end		
-		
+		end	
 	end
 end
 
@@ -315,7 +329,7 @@ function player_zombie_collision()
 	for z in all(zombie) do
 		for a_x=a.x,a.x+a.w do
 			for a_y=a.y-a.h,a.y+a.h do
-				if solid(a_x,a_y,a.w,a.h,z.x,z.y,z.w-z.h,2*z.h) then
+				if solid(a_x,a_y,a.w,a.h,z.x,z.y,z.w,z.h) then
 					return true
 				end
 			end
@@ -370,6 +384,23 @@ function bullet_zombie_collision()
 		end
 	end
 	
+	return false
+end
+
+function zombie_zombie_collision()
+	for zz in all(zombie) do
+		for z in all(zombie) do
+			for zz_x=zz.x,zz.x+zz.w do
+				for zz_y=zz.y,zz.y+zz.h do
+					if solid(zz_x,zz_y,zz.w,zz.h,z.x,z.y-z.h,z.w,2*z.h) then
+						if not zz.id == z.id then
+							return true
+						end
+					end
+				end
+			end
+		end
+	end
 	return false
 end
 
@@ -443,6 +474,16 @@ function draw_player()
 			spr(23,a.x,a.y)
 			spr(24,a.x,a.y-6)	
 		end
+		
+		if(a.invincible) then
+			if(a.frame%animation_speed==0) then
+				spr(49,a.x,a.y)
+				spr(50,a.x,a.y-6)
+			elseif (a.frame%animation_speed==1) then
+				spr(51,a.x,a.y)
+				spr(52,a.x,a.y-6)
+			end
+		end
 
 		if a.frame==2147483646 then		
 	 	a.frame = 0
@@ -509,8 +550,8 @@ function draw_menu()
 end
 
 function draw_gameover()
-	print("game over",32,60,2)	
-	print("press 🅾️ or ❎ to continu",29,75,2)	
+	print("game over ...",43,60,6)	
+	print("press 🅾️ or ❎ to continue.",15,75,6)	
 end
 
 function draw_warning()
@@ -547,9 +588,9 @@ function _draw()
 		-- end
 		
 		-- obstacles
-		for o in all(obstacle) do
-		rectfill(o.x,o.y,o.x+o.w,o.y+o.h,14)
-	 end
+		-- for o in all(obstacle) do
+		-- rectfill(o.x,o.y,o.x+o.w,o.y+o.h,14)
+	 -- end
 end
 
 -- menu function
@@ -663,16 +704,11 @@ end
 
 function game_map_init()
 		
-		for i=1,5 do
-			make_zombie(rnd(screen_x-10)+10,112,rnd(100)*0.01)
-			z_number+=1
-		end
-		
-		if game_map == 1 then
+	if game_map == 1 then
 		
 		make_obstacle(70,112)
-		
 		interaction = make_interaction(89,105,6,14)
+	
 	elseif game_map == 2 then
 	
 	elseif game_map == 3 then
@@ -702,10 +738,12 @@ function clear_everything()
 	for o in all(obstacle) do
 		del(obstacle,o)
 	end
+	
+	z_number = 0 
 end
 
 function update_warning()
-	if (btn(4) or btn(5) or btn(10) or btn(11)) and (now-last)>3 then
+	if (btn(4) or btn(5) or btn(10) or btn(11)) and (now-last)>1 then
 		game_state = 0
 	end
 end
@@ -743,6 +781,14 @@ function is_not_in_obstacle(x)
 end
 
 function update_game()	
+	
+	if a.invincible then
+		now = time()
+		if now - last < 5 then
+			a.invincible = false
+		end
+	end
+	
 	if a.noise > 1 then
 		a.noise -=1
 	else
@@ -762,29 +808,27 @@ function update_game()
 		game_state = 2
 	end	
 	
-	if a.noise == 100 and z_number < 15 then
-		
-		repeat
+	if a.noise == 100 and z_number < max_z_number then		
+--		repeat
 		z_x = rnd(screen_x-10)+10
-		until is_not_in_obstacle(z_x)
+--	until is_not_in_obstacle(z_x)
 		
 		make_zombie(z_x,112,rnd(100)*0.01)
 		z_number+=1
+		a.noise-=50
 	end
 
 	if a.x <= 0 then
+	 clear_everything()
 		game_map-=1
 		a.x = screen_x-5
-		a.noise = 0
-		clear_everything()
 		game_map_init()
 	end
 	
 	if a.x+3 >= screen_x then
+	 clear_everything()
 		game_map+=1
 		a.x = 3
-		a.noise = 0
-		clear_everything()
 		game_map_init()
 	end
 	
@@ -836,14 +880,14 @@ __gfx__
 00000000006003003366363000600800886688800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000003003003063363000800800806868000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000003003000036663000800800008666000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000005575000004400000557500000440000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000557500004ff40000557500004004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000444400004ff40f00444400004004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000dddd00f00ff00f00dddd00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000000000d0000d0ff5575ff0d0000d0005575000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000000000df11fd0005575000d0110d0005575000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000110000055750000011000005575000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000055750000000000005575000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 04444440999999998888888800000000434b444b5555555555555555004444444444444444444400000000000000000000000000000000000000000000000000
 400440049555aaa98222222800030300444434445ffffff55ffffff5044444444444444444444440000000000000000000000000000000000000000000000000
 44444444955555a982000028000b0b30434444345ffffff55ffffff5444444444444444444444444000000000000000000000000000000000000000000000000
