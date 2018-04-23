@@ -1,6 +1,8 @@
 pico-8 cartridge // http://www.pico-8.com
 version 16
 __lua__
+--global varibales, update, draw, init, etc
+
 -- size of the screen in pixels
 screen_x = 128
 screen_y = 128
@@ -8,6 +10,8 @@ screen_y = 128
 -- timer
 last = 0
 now = 0
+last_attack = 0
+attack_cooldown = 0.5
 
 -- 0 = menu
 -- 1 = game
@@ -24,7 +28,6 @@ z_number = 0
 max_z_number = 5
 
 animation_speed = 3
-shooting_speed = 7
 
 actor = {}
 zombie = {}
@@ -35,29 +38,444 @@ bullet = {}
 jump = false
 bullet_shoot = false
 
+function _update()
+	if game_state == 0 then
+		update_menu()
+	elseif game_state == 1 then
+		update_game()
+	elseif game_state == 2 then
+		update_gameover()
+	elseif game_state == 4 then
+		update_warning()
+	end
+end
+
+function _draw()
+	cls()
+	if game_state == 0 then
+		draw_menu()
+	elseif game_state == 1 then
+		draw_game()
+	elseif game_state == 2 then
+		draw_gameover()
+	elseif game_state == 4 then
+		draw_warning()
+	end
+end
+
+function _init()
+	menuinit()
+	game_state=4
+	game_map=1
+end
+
+function gameinit()
+	map()
+	game_state = 1
+	game_map = 1
+	game_map_init()
+	player = make_actor(x,y)
+end
+
+function game_map_init()
+		
+	if game_map == 1 then
+		
+		make_obstacle(70,112)
+		interaction = make_interaction(89,105,6,14)
+	
+	elseif game_map == 2 then
+	
+		make_obstacle(70,112)
+		make_obstacle(21,112)
+		make_obstacle(110,112)
+	elseif game_map == 3 then
+	
+	elseif game_map == 4 then
+		
+	end
+end
+
+function update_game()	
+	
+	if a.invincible then
+		now = time()
+		
+		if now - last < 5 then
+			a.invincible = false
+		end
+	end
+	
+	if a.noise >= 0.5 then
+		a.noise -=0.5
+	else
+		a.noise = 0
+	end
+	
+	if a.noise < 0 then
+		a.noise = 0
+	end
+	
+	if a.noise > 100 then
+		a.noise = 100
+	end
+	
+	if a.hp == 0 then
+		clear_everything()
+		game_state = 2
+	end	
+	
+	if a.noise>99 and z_number < max_z_number then		
+		repeat
+			z_x = rnd(screen_x-10)+10	
+		until not is_in_obstacle(z_x,6)
+		
+		make_zombie(z_x,112,rnd(75)*0.01)
+		z_number+=1
+		a.noise-=30
+	end
+
+	if a.x <= 0 then
+	 clear_everything()
+		game_map-=1
+		a.x = screen_x-5
+		game_map_init()
+	end
+	
+	if a.x+3 >= screen_x then
+	 clear_everything()
+		game_map+=1
+		a.x = 3
+		game_map_init()
+	end
+	
+	control_player()
+	bullet_moving()
+	zombie_moving()
+end
+
+function is_in_obstacle(x,h)
+	for o in all(obstacle) do
+		if x+h >= o.x and x <= o.x+o.h then
+			return true
+		end
+	end
+	return false
+end
+
+function clear_everything()
+	for b in all(bullet) do
+		del(bullet,b)
+	end
+	for z in all(zombie) do
+		del(zombie,z)
+	end
+	for o in all(obstacle) do
+		del(obstacle,o)
+	end
+	
+	z_number = 0 
+end
+-->8
+-- draw --
+
+function draw_player() 
+  spr(a.state,a.x,a.y-6)
+		spr(a.state+16,a.x,a.y)
+		
+		--in case there is a weapon to show
+		if a.state == 8 then
+			spr(a.state+32,a.x-8,a.y-6)
+		end
+		if a.state == 9 then
+			spr(a.state+32,a.x+8,a.y-6)
+		end
+		
+		a.frame+=1
+end
+
+function draw_bullet()
+	for b in all(bullet) do
+		spr(b.spr,b.x,b.y)
+	end
+end
+
+function draw_zombies()
+ for z in all(zombie) do
+		if z.hurt then
+			spr(15,z.x,z.y-6)
+			spr(31,z.x,z.y)
+			z.hurt = false
+		else
+			spr(14,z.x,z.y-6)
+			spr(30,z.x,z.y)
+		end
+	end
+end
+
+function draw_obstacles()
+	for o in all(obstacle) do		
+		spr(64,o.x,o.y)
+	end
+end
+
+function draw_noisebar()
+	rectfill(3,3,3+a.noise,5,13)
+	print(flr(a.noise),1,7,11)
+end
+
+function draw_gameover()
+	print("game over ...",43,60,6)	
+	print("press 🅾️ or ❎ to continue.",15,75,6)	
+end
+
+function draw_warning()
+ now = time()
+ print("▤ warning ▤",39,31,7)
+	print("this game needs 3 buttons to be",4,60,7)
+	print("played, i recommend you to bind",4,70,7)
+	print("player 2 controls near p1 ones.",4,80,7)
+	if (now - last)>3 then	
+		print("press 🅾️ or ❎ to continue",12,100,time()%2+5)	
+	end
+end
+
+function draw_menu()
+	cls(col2)
+ draw_options()
+ if (octopus==true) then
+ 	draw_octopus()
+ end
+end
+
+function draw_game()
+	cls()
+	if game_map == 1 then
+	 map(0,0,0,64,16,8)
+		-- sky so always the same except
+		-- if we want to draw over 64px
+	 map(17,0,0,0,16,8)
+	elseif game_map == 2 then
+		map(34,0,0,64,16,8)
+ 	map(17,0,0,0,16,8)
+	elseif game_map == 3 then
+		map(51,0,0,64,16,8)
+ 	map(17,0,0,0,16,8)
+	elseif game_map == 4 then
+	elseif game_map == 5 then
+	elseif game_map == 6 then
+end
+		
+		draw_player()
+		draw_zombies()
+		draw_obstacles()
+		draw_bullet()
+		draw_noisebar()
+		print(bullet_zombie_collision(),10,1,15,6,11)
+		
+		-- hitboxes
+
+		-- player
+  -- rectfill(a.x,a.y-a.h,a.x+a.w,a.y+a.h,14)
+ 	
+ 	-- interactions items
+ 	-- for i in all(interaction) do
+ 	--	rectfill(i.x,i.y,i.x+i.w,i.y+i.h,14)
+		-- end
+		
+		-- obstacles
+		-- for o in all(obstacle) do
+		-- rectfill(o.x,o.y,o.x+o.w,o.y+o.h,14)
+	 -- end
+end
+-->8
+-- player --
+
 function make_actor(x, y)
  a={}
  a.x = x
  a.y = y
- a.h = 8
- a.w = 8
+ a.new_x = x
+ a.new_y = y
+ a.h = 7
+ a.w = 6
  a.spr = 3
  a.frame = 0
  a.noise = 0
  a.hp = 7
- a.invincible = false
  a.weapon = 1
- a.d_left = false
- a.d_right = false
- a.attacking_right = false
- a.attacking_left = false
- a.moving = false
- a.hurt = false
+ 
+ -- state of the player :
+ -- 1- normal, the player stand without moving
+ -- 2- running left
+ -- 3- running right
+ -- 4- jumping horizontaly
+ -- 5- jumping left
+ -- 6- jumping right
+ -- 7- falling
+ -- 8- attacking left
+ -- 9- attacking right
+ -- 10- hurt
+ -- 11- invincible
+ 
+ a.state = 1
  
  add(actor,a)
- 
 return a
 end
+
+function control_player()
+a.d_left = false
+a.d_right = false
+
+if (a.y>=max_y) then 
+	jump=false 
+	a.state = 1
+end
+
+if (a.y<=max_y) then 
+ a.new_y=a.new_y+gravity
+	if not player_obstacle_collision(0,1) then
+		a.y=a.y+gravity
+		a.state = 7
+	else
+		jump = false
+		a.new_y=a.new_y-gravity
+		a.state = 1 
+	end
+end
+if (btn(0)) then
+	a.new_x-=2.5
+ if not player_obstacle_collision() and not (game_map==1 and a.x<5) then
+ 	a.x-=2.5
+ 	if jump then
+ 		a.state = 5
+ 	else
+ 		a.state = 2
+ 	end
+ 	if a.noise < 100 then
+ 		a.noise+=1 
+ 	end
+ else
+ 	a.new_x+=2.5
+	end
+end
+
+if (btn(1)) then
+	a.new_x+=2.5
+ if not player_obstacle_collision() then
+  a.x+=2.5
+  if jump then
+ 		a.state = 6
+ 	else
+ 		a.state = 3
+ 	end
+  if a.noise < 100 then
+  	a.noise+=1
+  end
+ else
+	 a.new_x-=2.5
+ end
+end
+
+ if (btn(2)) then 
+	 if (jump==false) then
+		 --stop jumping when ecounter an obstacle
+		 for i=1,15 do
+	 		a.new_y-=1
+		  if(not player_obstacle_collision(0,-1)) then
+		  	a.y=a.y-1
+		  else
+		  	a.new_y+=1
+		  end
+		 end
+	  jump=true
+	  if a.noise<94 then
+		  a.noise+=7
+	  else 
+	  	a.noise = 100
+	  end
+	 end
+ end
+ 
+	 --shoot
+ if (btn(4)) then
+ 	now = time()
+ 	if now - last_attack > attack_cooldown then
+			a.state = 8
+			shoot_left()
+			last_attack = time()
+			
+			if a.noise<92 then
+	 	 a.noise+=9
+	  else 
+	 	 a.noise = 100
+	 	end
+		end
+	end
+	
+ if(btn(5)) then
+  now = time()
+		if now-last_attack > attack_cooldown then
+		 a.state = 9
+ 		shoot_right()
+ 		last_attack = time()
+ 		
+			if a.noise<92 then
+	 	 a.noise+=9
+	 	else 
+	 	 a.noise = 100
+	 	end
+		end
+	end
+	 
+	 --interact
+ if btn(10) then
+	-- to do	
+ end
+	 
+	 if player_zombie_collision() then
+			if not a.invincible then
+				a.hurt = true
+				a.hp-=1
+				last = time()
+				a.invincible = true
+			end
+		end
+end
+
+function shoot_left()
+ a.attacking_left = true
+ a.attacking_right = false
+ 
+ --weapon 1 = pistol
+	if(a.weapon==1) then
+		make_bullet(a.x-6,a.y-7,-1)
+	end
+end
+
+function shoot_right()
+ a.attacking_right = true
+ a.attacking_left = false
+ 
+ --weapon 1 = pistol
+	if(a.weapon==1) then
+		make_bullet(a.x+6,a.y-7,1)
+	end
+end
+
+
+function check_moving(moving)
+	if(btn(0) or btn(1)) then
+		moving = true
+	else
+	 moving = false
+	end
+	return moving
+end
+
+-->8
+-- zombies --
 
 function make_zombie(x,y,speed)
 	local z={}
@@ -68,59 +486,23 @@ function make_zombie(x,y,speed)
 	z.id = cpt+1
 	z.x = x
 	z.y = y
-	z.h = 8
-	z.w = 8
+	z.new_x = x
+	z.new_y = y-8
+	-- -8 because otherwise the top
+	-- of the zombie isnt considered
+	-- in the hitbox.
+	z.h = 12
+	z.w = 6
 	z.spr = 33
 	z.accel = 0
 	z.speed = speed
-	z.hp = 15
+	z.hp = 7
 	z.hurt = false
 	z.blocked = false
 	
 	add(zombie,z)
 	
 	return z
-end
-
-function make_obstacle(x,y)
- local o={}
-	o.x = x
-	o.y = y
-	o.w = 10
-	o.h = 10
-	o.spr = 64
-	o.hp = 100
-	
-	add(obstacle,o)
-	
-	return o
-end
-
-function make_interaction(x,y,w,h)
-	local i={}
-	i.x = x
-	i.y = y
-	i.w = w
-	i.h = h
-	
-	add(interaction,i)
-	
-	return i
-end
-
-function make_bullet(x,y,dir)
-	local b={}
-	b.x = x
-	b.y = y
-	b.w = 5
-	b.h = 2
-	b.spr = 159
-	b.speed = 4
-	b.dir = dir
-
-	add(bullet,b)
-	
-	return b
 end
 
 function accel_zombie()
@@ -148,136 +530,11 @@ function move_zombie()
 	end
 end
 
-function control_player()
-a.d_left = false
-a.d_right = false
-
-if (a.y>=max_y) then jump=false end
-  if (a.y<=max_y) then 
-  	if not player_obstacle_collision(0,1) then
-  	a.y=a.y+gravity
-  	else
-  	jump = false 
-  	end
-  end
-	 if (btn(0)) then
-   if not player_obstacle_collision(-2.5,0) and not (game_map==1 and a.x<5) then
-	  	a.x=a.x-2.5
-	  	a.d_left = true
-	  	if a.noise < 100 then
-	  		a.noise+=3 
-	  	end
-	  end
-	 end
-	 if (btn(1)) then 
-	  if not player_obstacle_collision(2.5,0) then
-	   a.x=a.x+2.5
-	   a.d_right = true
-	   if a.noise < 98 then
-	   	a.noise+=3 
-	   else
-	   	a.noise = 100
-	   end
-	  end
-	 end
-	 if (btn(2)) then 
-	 	if (jump==false) then
-	 			--stop jumping when ecounter an obstacle
-	 	 	for i=1,15 do
-	 	 	 if(not player_obstacle_collision(0,-1)) then
-	 	 	 	a.y=a.y-1
-	 	 	 end
-	 	 	end
-	 	  jump=true
-	 	  if a.noise<92 then
-	 	 	 a.noise+=9
-	 	  else 
-	 	  	a.noise = 100
-	 	  end
-	 	end
-	 end
-	 
-	 --shoot
-	 if (btn(4)) then
-		if(a.frame%shooting_speed==0) then
-			if a.noise<96 then
-	 	 a.noise+=5
-	 	 else 
-	 	 a.noise = 100
-	 	end
-	 	shoot_left()
-		end
-	 end
-	 if(btn(5)) then
-		if(a.frame%shooting_speed==0) then
-			if a.noise<96 then
-	 	 a.noise+=5
-	 	 else 
-	 	 a.noise = 100
-	 	end
-	 	shoot_right()
-		end
-	 end
-	 
-	 --interact
-	 if btn(10) then
-	 	-- to do
-	 end
-	 
-	 if player_zombie_collision() then
-			if not a.invincible then
-				a.hurt = true
-				a.hp-=1
-				last = time()
-				a.invincible = true
-			end
-		end
-end
-
-function shoot_left()
- a.attacking_left = true
- a.attacking_right = false
- 
- --weapon 1 = pistol
-	if(a.weapon==1) then
-		make_bullet(a.x-6,a.y-3,-1)
-	end
-end
-
-function shoot_right()
- a.attacking_right = true
- a.attacking_left = false
- 
- --weapon 1 = pistol
-	if(a.weapon==1) then
-		make_bullet(a.x+6,a.y-3,1)
-	end
-end
-
-function bullet_moving()
-	for b in all(bullet) do
-	--if going right 
-		if b.dir==1 then
-			if b.x < screen_x and not bullet_zombie_collision(0,0) and not bullet_obstacle_collision(0,0) then
-				b.x+=b.speed
-			else
-				del(bullet,b)
-			end
-		end
-		--if going left
-		if b.dir==-1 then
-			if b.x > 0 and not bullet_zombie_collision(0,0) and not bullet_obstacle_collision(0,0) then
-				b.x-=b.speed
-			else
-				del(bullet,b)
-			end
-		end
-	end
-end
 
 function zombie_moving()
 	a.hurt = false
 	accel_zombie()
+	
 	for z in all(zombie) do
 		if z.hurt then
 			z.hp-=1
@@ -285,313 +542,108 @@ function zombie_moving()
 		
 		if z.hp == 0 then
 			del(zombie,z)
+			z_number-=1
 		end
 	
-		if z.x < a.x-1 
-		--and zombie_obstacle_collision(z.accel*z.speed,0) and not zombie_zombie_collision()
-	 then
-			z.x+=z.accel*z.speed
-		elseif z.x > a.x+1 
-		--and zombie_obstacle_collision(-z.accel*z.speed,0) and not zombie_zombie_collision()
-	 then
-			z.x-=z.accel*z.speed
+		if z.x < a.x-1 then
+			z.new_x+=z.accel*z.speed
+			if not zombie_obstacle_collision() and z.blocked then
+				z.x+=z.accel*z.speed
+			else
+				z.new_x-=z.accel*z.speed
+			end
+		elseif z.x > a.x+1 then
+			z.new_x-=z.accel*z.speed
+			if not zombie_obstacle_collision() and z.blocked then
+				z.x-=z.accel*z.speed
+			else
+				z.new_x+=z.accel*z.speed
+			end
 		end	
 	end
 end
 
--- test if a point is solid
-function solid (x,y,w,h,x_cible,y_cible,w_cible,h_cible)
+-->8
+-- bullets, obstacles and interactions -- 
 
-	if (x >= x_cible and x <= x_cible+w_cible and y >= y_cible and y <= y_cible+h_cible) then
-		return true
-	end 
+-- obstacles 
+
+function make_obstacle(x,y)
+ local o={}
+	o.x = x
+	o.y = y
+	o.new_x = x
+	o.new_y = y
+	o.w = 10
+	o.h = 10
+	o.spr = 64
+	o.hp = 100
 	
-	-- revoir les flags
-	-- val = mget(flr(x/8),flr(y/8))
-	-- return fget(val, 3)
-	return false
+	add(obstacle,o)
+	
+	return o
 end
 
-function player_obstacle_collision(dist_x,dist_y)
-	for o in all(obstacle) do 
-		for a_x=a.x,a.x+a.w do
-			for a_y=a.y-a.h,a.y+a.h do
-				if solid(a_x+dist_x,a_y+dist_y,a.w,a.h,o.x,o.y,o.w,o.h) then
-					return true
-				end
-			end
-		end
-	end
-	return false
+-- interactions
+
+function make_interaction(x,y,w,h)
+	local i={}
+	i.x = x
+	i.y = y
+	i.new_x = x
+	i.new_y = y
+	i.w = w
+	i.h = h
+	
+	add(interaction,i)
+	
+	return i
 end
 
-function player_zombie_collision()
-	for z in all(zombie) do
-		for a_x=a.x,a.x+a.w do
-			for a_y=a.y-a.h,a.y+a.h do
-				if solid(a_x,a_y,a.w,a.h,z.x,z.y,z.w,z.h) then
-					return true
-				end
-			end
-		end
-	end
-	return false
+-- bullets
+
+function make_bullet(x,y,dir)
+	local b={}
+	b.x = x
+	b.y = y
+	b.new_x = x
+	b.new_y = y
+	b.w = 5
+	b.h = 2
+	b.spr = 159
+	b.speed = 4
+	b.dir = dir
+
+	add(bullet,b)
+	
+	return b
 end
 
-function zombie_obstacle_collision(dist_x,dist_y)
-	for z in all(zombie) do
-		for o in all(obstacle) do
-			for z_x=z.x,z.x+z.w do
-				for z_y=z.y-z.h,z.y+z.h do
-					if solid(z_x+dist_x,z_y+dist_y,z.w,z.h,o.x,o.y,o.w,o.h) then
-						z.blocked = true
-						return true
-					end
-				end
-			end
-		end
-	end
-	return false
-end
 
-function bullet_obstacle_collision(dist_x,dist_y)
+function bullet_moving()
 	for b in all(bullet) do
-		for o in all(obstacle) do
-			for b_x=b.x,b.x+b.w do
-				for b_y=b.y,b.y+b.h do
-					if solid(b_x+dist_x,b_y+dist_y,b.w,b.h,o.x,o.y,o.w,o.h) then
-						return true
-					end
-				end
+	--if going right 
+		if b.dir==1 then
+			b.new_x+=b.speed
+			if b.x < screen_x and not bullet_zombie_collision() and not bullet_obstacle_collision() then
+				b.x+=b.speed
+			else
+				del(bullet,b)
 			end
 		end
-	end
-	return false
-end
-
-function bullet_zombie_collision()
-	for b in all(bullet) do
-		for z in all(zombie) do
-			for b_x=b.x,b.x+b.w do
-				for b_y=b.y,b.y+b.h do
-					if solid(b_x,b_y,b.w,b.h,z.x,z.y-z.h,z.w,2*z.h) then
-						del(bullet,b)
-						z.hurt = true
-					return true
-					end
-				end
+		--if going left
+		if b.dir==-1 then
+			b.new_x-=b.speed
+			if b.x > 0 and not bullet_zombie_collision() and not bullet_obstacle_collision() then
+				b.x-=b.speed
+			else
+				del(bullet,b)
 			end
-		end
-	end
-	
-	return false
-end
-
-function zombie_zombie_collision()
-	for zz in all(zombie) do
-		for z in all(zombie) do
-			for zz_x=zz.x,zz.x+zz.w do
-				for zz_y=zz.y,zz.y+zz.h do
-					if solid(zz_x,zz_y,zz.w,zz.h,z.x,z.y-z.h,z.w,2*z.h) then
-						if not zz.id == z.id then
-							return true
-						end
-					end
-				end
-			end
-		end
-	end
-	return false
-end
-
-function check_moving(moving)
-	if(btn(0) or btn(1)) then
-		moving = true
-	else
-	 moving = false
-	end
-	return moving
-end
-
-function animation_moving()
-	if(a.spr == 7) then
-		a.spr = 3			 	
-	else
-		a.spr += 2
+		end		
 	end
 end
-
-function draw_player() 
-  --and not jumping
-  if(jump==false) then
-			 if not a.moving and not (a.attacking_right or a.attacking_left) then
-			  spr(1,a.x,a.y) 
-			  spr(2,a.x,a.y-6) 
-			 end
-			 
-			 if mov and not (a.attacking_left or a.attacking_right) then
-			  if(a.frame%animation_speed==0) then
-			 	 animation_moving()
-			 	end
-			 	spr(a.spr,a.x,a.y)
-			 	spr(a.spr+1,a.x,a.y-6)
-			 end
-			
-		--if jumping
-	 else
-	 
-	  --to the right
-	  if((a.d_right and a.d_left) or (not a.d_right and not a.d_left) and not a.attacking_left and not a.attacking_right) then 
-	   spr(17,a.x,a.y) 
-	   spr(18,a.x,a.y-6)
-	  end
-	  --to the left
-	 	if(a.d_right and not a.d_left and not a.attacking_left and not a.attacking_right) then
-	 	 spr(19,a.x,a.y)
-	 	 spr(20,a.x,a.y-6)
-	 	end
-	 	if(a.d_left and not a.d_right and not a.attacking_left and not a.attacking_right) then
-	 	 spr(21,a.x,a.y)
-	 	 spr(22,a.x,a.y-6)
-	 	end
-	 end
-	 
-	 	 --if attacking
-  if(a.attacking_right) then
- 	 spr(10,a.x,a.y)
- 	 spr(11,a.x,a.y-6)
- 	 spr(12,a.x+6,a.y-6)
- 	 a.attacking_right = false
-	 end
-	 if(a.attacking_left) then
-	  	spr(13,a.x,a.y)
-	  	spr(14,a.x,a.y-6)
-	  	spr(15,a.x-6,a.y-6)
-    a.attacking_left = false
-	 end
-	
-		if(a.hurt) then
-			spr(23,a.x,a.y)
-			spr(24,a.x,a.y-6)	
-		end
-		
-		if(a.invincible) then
-			if(a.frame%animation_speed==0) then
-				spr(49,a.x,a.y)
-				spr(50,a.x,a.y-6)
-			elseif (a.frame%animation_speed==1) then
-				spr(51,a.x,a.y)
-				spr(52,a.x,a.y-6)
-			end
-		end
-
-		if a.frame==2147483646 then		
-	 	a.frame = 0
-	 end
-	 
-		a.frame+=1
-end
-
-function draw_bullet()
-	for b in all(bullet) do
-		spr(b.spr,b.x,b.y)
-	end
-end
-
-function draw_zombies()
- for z in all(zombie) do
-		if z.hurt then
-			spr(35,z.x,z.y)
-			spr(36,z.x,z.y-6)
-			z.hurt = false
-		else
-			spr(33,z.x,z.y)
-			spr(34,z.x,z.y-6)
-		end
-	end
-end
-
-function draw_obstacles()
-	for o in all(obstacle) do		
-		spr(64,o.x,o.y)
-	end
-end
-
-function draw_game()
-	cls()
-	if game_map == 1 then
-	 map(0,0,0,64,16,8)
-		-- sky so always the same except
-		-- if we want to draw over 64px
-	 map(17,0,0,0,16,8)
-	elseif game_map == 2 then
-		map(34,0,0,64,16,8)
- 	map(17,0,0,0,16,8)
-	elseif game_map == 3 then
-		map(51,0,0,64,16,8)
- 	map(17,0,0,0,16,8)
-	elseif game_map == 4 then
-	elseif game_map == 5 then
-	elseif game_map == 6 then
-end
-		
-		draw_player()
-		draw_zombies()
-		draw_obstacles()
-		draw_bullet()
-end
-
-function draw_menu()
-	cls(col2)
- draw_options()
- if (octopus==true) then
- 	draw_octopus()
- end
-end
-
-function draw_gameover()
-	print("game over ...",43,60,6)	
-	print("press 🅾️ or ❎ to continue.",15,75,6)	
-end
-
-function draw_warning()
- now = time()
- print("▤ warning ▤",39,31,7)
-	print("this game needs 3 buttons to be",4,60,7)
-	print("played, i recommend you to bind",4,70,7)
-	print("player 2 controls near p1 ones.",4,80,7)
-	if (now - last)>3 then	
-		print("press 🅾️ or ❎ to continue",12,100,time()%2+5)	
-	end
-end
-
-function _draw()
-	cls()
-	if game_state == 0 then
-		draw_menu()
-	elseif game_state == 1 then
-		draw_game()
-	elseif game_state == 2 then
-		draw_gameover()
-	elseif game_state == 4 then
-		draw_warning()
-	end
-	
-		-- hitboxes
-
-		-- player
-  -- rectfill(a.x,a.y-a.h,a.x+a.w,a.y+a.h,14)
- 	
- 	-- interactions items
- 	-- for i in all(interaction) do
- 	--	rectfill(i.x,i.y,i.x+i.w,i.y+i.h,14)
-		-- end
-		
-		-- obstacles
-		-- for o in all(obstacle) do
-		-- rectfill(o.x,o.y,o.x+o.w,o.y+o.h,14)
-	 -- end
-end
+-->8
+-- menu --
 
 -- menu function
 -- inspired by a code from : https://www.lexaloffle.com/bbs/?tid=27725
@@ -666,88 +718,6 @@ function update_settings()
  end
 end
 
-function warning_init() 
-	last = time()
-end
-
-function init_menu()
-	m={}
- m.x=8
- cx=m.x
- m.y=40
- m.options={"start","settings",
-            "exit"}
- m.amt=0
- for i in all(m.options) do
-  m.amt+=1
- end
- m.sel=1
- sub_mode=0
- menu_timer=0
-end
-
-function menuinit()
-	octopus=false
- pals={{7,0},{15,1},{6,5},
-			   {10,8},{7,3},{7,2}}
- palnum=5
- init_menu()
-end
-
-function gameinit()
-	map()
-	game_state = 1
-	game_map = 1
-	game_map_init()
-	player = make_actor(x,y)
-end
-
-function game_map_init()
-		
-	if game_map == 1 then
-		
-		make_obstacle(70,112)
-		interaction = make_interaction(89,105,6,14)
-	
-	elseif game_map == 2 then
-	
-	elseif game_map == 3 then
-	
-	elseif game_map == 4 then
-		
-	end
-end
-
-function gameoverinit()
-	game_state = 2
-end
-
-function _init()
-	menuinit()
-	game_state=4
-	game_map=1
-end
-
-function clear_everything()
-	for b in all(bullet) do
-		del(bullet,b)
-	end
-	for z in all(zombie) do
-		del(zombie,z)
-	end
-	for o in all(obstacle) do
-		del(obstacle,o)
-	end
-	
-	z_number = 0 
-end
-
-function update_warning()
-	if (btn(4) or btn(5) or btn(10) or btn(11)) and (now-last)>1 then
-		game_state = 0
-	end
-end
-
 function update_menu()
 	update_cursor()
  if sub_mode==0 then
@@ -769,72 +739,44 @@ function update_menu()
  menu_timer+=1
 end
 
--- function to chech if x is in
--- an obstacle
-function is_not_in_obstacle(x)
-	for o in all(obstacle) do
-		if x>o.x and x<o.x+o.w then
-			return true
-		end
-	end
-	return false
+function menuinit()
+	octopus=false
+ pals={{7,0},{15,1},{6,5},
+			   {10,8},{7,3},{7,2}}
+ palnum=5
+ init_menu()
 end
 
-function update_game()	
-	
-	if a.invincible then
-		now = time()
-		if now - last < 5 then
-			a.invincible = false
-		end
-	end
-	
-	if a.noise > 1 then
-		a.noise -=1
-	else
-		a.noise = 0
-	end
-	
-	if a.noise < 0 then
-		a.noise = 0
-	end
-	
-	if a.noise > 100 then
-		a.noise = 100
-	end
-	
-	if a.hp == 0 then
-		clear_everything()
-		game_state = 2
-	end	
-	
-	if a.noise == 100 and z_number < max_z_number then		
---		repeat
-		z_x = rnd(screen_x-10)+10
---	until is_not_in_obstacle(z_x)
-		
-		make_zombie(z_x,112,rnd(100)*0.01)
-		z_number+=1
-		a.noise-=50
-	end
+function init_menu()
+	m={}
+ m.x=8
+ cx=m.x
+ m.y=40
+ m.options={"start","settings",
+            "exit"}
+ m.amt=0
+ for i in all(m.options) do
+  m.amt+=1
+ end
+ m.sel=1
+ sub_mode=0
+ menu_timer=0
+end
+-->8
+-- game over and warning --
 
-	if a.x <= 0 then
-	 clear_everything()
-		game_map-=1
-		a.x = screen_x-5
-		game_map_init()
+function warning_init() 
+	last = time()
+end
+
+function update_warning()
+	if (btn(4) or btn(5) or btn(10) or btn(11)) and (now-last)>1 then
+		game_state = 0
 	end
-	
-	if a.x+3 >= screen_x then
-	 clear_everything()
-		game_map+=1
-		a.x = 3
-		game_map_init()
-	end
-	
-	control_player()
-	bullet_moving()
-	zombie_moving()
+end
+
+function gameoverinit()
+	game_state = 2
 end
 
 function update_gameover()
@@ -842,75 +784,130 @@ function update_gameover()
 		game_state = 0
 	end
 end
+-->8
+-- collisions --
 
-function _update()
-	if game_state == 0 then
-		update_menu()
-	elseif game_state == 1 then
-		update_game()
-	elseif game_state == 2 then
-		update_gameover()
-	elseif game_state == 4 then
-		update_warning()
+-- test if a point is solid
+function solid(box1,box2)
+	if ((box2.new_x >= box1.new_x + box1.w) 
+			or (box2.new_x + box2.w <= box1.new_x) 
+			or (box2.new_y >= box1.new_y + box1.h) 
+			or (box2.new_y + box2.h <= box1.new_y)) then		
+		return false
 	end
+	
+	return true
 end
 
+function player_obstacle_collision()
+	for o in all(obstacle) do
+		if solid(a,o) then
+			return true
+		end
+	end
+	return false
+end
+
+function player_zombie_collision()
+	for z in all(zombie) do
+		if solid(a,z) then
+			return true
+		end
+	end
+	return false
+end
+
+function bullet_zombie_collision()
+	for b in all(bullet) do
+		for z in all(zombie) do
+			if solid(b,z) then
+				z.hurt = true
+				return true
+			end
+		end
+	end
+	return false
+end
+
+function bullet_obstacle_collision()
+for b in all(bullet) do
+		for o in all(obstacle) do
+			if solid(b,o) then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+function zombie_obstacle_collision()
+for z in all(zombie) do
+		z.blocked = true
+		for o in all(obstacle) do
+			if solid(z,o) then
+				z.blocked = true
+				return true
+			end
+		end
+	end
+	return false
+end
 __gfx__
-00000000005575000004400000557500000440000055750000044000005575000004400000000000005575000004400000000000005575000004400000000000
-0000000000557500004ff40000557500004ff40000557500004ff40000557500004ff4000000000000557500004ff4000000000000557500004ff40000000000
-0070070000444400004ff40000444400004ff40000444400004ff40000444400004ff4000000000000444400004ff4000000000000444400004ff40000000000
-0007700000dddd00000ff00000dddd00000ff00000dddd00000ff00000dddd00000ff0000000000000dddd00000ff0000777700000dddd00000ff00000077770
-0007700000d00d000f5575f000d00d000f5575f000d00d000f5575f000d00d000f5575f00000000000d00d000f5575fff500000000d00d00ff5575f00000005f
-0070070000d00d000f5575f000d00d00f05575f000d00d000f5575f001d00d000f5575000000000000d00d000fff75000500000000d00d000055fff000000050
-0000000000f00f000f5575f001f00f00f05575ff00f00f000f5575f001000f000ff575f00000000001f00f00005575000000000000f00f100055750000000000
-00000000011001100f5575f001000110f05575000010100000f5750f000001100055750000000000010001100055750000000000011000100055750000000000
-00000000005575000004400000557500000440000057550000044000005575008004400800000000000000000000000000000000000000000000000000000000
-0000000000557500f04ff40f00557500004ff40000575500004ff400005575008048840800000000000000000000000000000000000000000000000000000000
-0000000000444400f04ff40f00444400004ff40000444400004ff400004444008048840800000000000000000000000000000000000000000000000000000000
-0000000000dddd00f00ff00f00dddd00000ff00000dddd00000ff00000dddd008008800800000000000000000000000000000000000000000000000000000000
-000000000d000d000f5575f000d000d00f5575f00d000d000f5755f000d00d000855758000000000000000000000000000000000000000000000000000000000
-000000000f000d000055750000d001f0f05575f00f100d000f57550f00d00d000055750000000000000000000000000000000000000000000000000000000000
-0000000000100f000055750001f00100f05575ff00100f10ff57550f008008000055750000000000000000000000000000000000000000000000000000000000
-00000000000010000055750001000000f0557500000000100057550f011001100055750000000000000000000000000000000000000000000000000000000000
-00000000003363000003300000886800000880000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000006633000003300000668800000880000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000003666000036630000866600008668000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000006666000333363000666600088886800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000006006000363663000600600086866800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000006003003366363000600800886688800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000003003003063363000800800806868000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000003003000036663000800800008666000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000005575000004400000557500000440000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-0000000000557500004ff40000557500004004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-0000000000444400004ff40f00444400004004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-0000000000dddd00f00ff00f00dddd00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000000000d0000d0ff5575ff0d0000d0005575000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000000000df11fd0005575000d0110d0005575000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000110000055750000011000005575000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000055750000000000005575000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000440000004400000044000000440000004400000044000000440000004400000044000800440080004400000000000000000003003300380088008
+00000000004ff400004ff400004ff400f04ff40f004ff400004ff400004ff400004ff400004ff40080488408004aa40000000000000000003003300380088008
+00700700004ff400004ff400004ff400f04ff40f004ff400004ff400f04ff40f004ff400004ff40080488408004aa40000000000000000003055550380555508
+00077000000ff000000ff000000ff000f00ff00f000ff000000ff000f00ff00f000ff000000ff00080088008000aa00000000000000000003533555385885558
+000770000f5575f00f5575f00f5575f00f5575f00f5755f00f5575f0ff5575ffff5575f00f5575ff08557580aa5575aa00000000000000000055535000555850
+007007000f5575f0005575f00f557500005575000f57550ff05575f0005575000055fff00fff750000557500a055750a00000000000000000053550000585500
+000000000f5575f00f557ff00ff575f000557500ff57550ff05575ff005575000055750000557500005575000055750000000000000000000035550000855500
+000000000f5575f00055750000557500005575000057550ff0557500005575000055750000557500005575000055750000000000000000000053530000585800
+00000000005575000055750000557500005575000057550000557500005575000055750000557500005575000055750000000000000000000055550000555500
+00000000005575000055750000557500005575000057550000557500005575000055750000557500005575000055750000000000000000000053530000585800
+00000000004444000044440000444400004444000044440000444400004444000044440000444400004444000044440000000000000000000035550000855500
+0000000000dddd0000dddd0000dddd0000dddd0000dddd0000dddd0000dddd0000dddd0000dddd0000dddd0000dddd0000000000000000000050050000500500
+0000000000d00d0000d00d0000d00d000d000d000d000d0000d000d00d0000d000d00d0000d00d0000d00d000d0000d000000000000000000030030000800800
+0000000000d00d0000d00f1001f00d000f000d000f100d0000d001f00d001fd000d00d0000d00d0000d00d000d0000d000000000000000000030050000800500
+0000000000f00f0000f0001001000f0000100f0000100f1001f001000ff1100000f00f1001f00f00008008000a0000a000000000000000000030050000800500
+00000000011001100110000000000110000010000000001001000000000100000110001001000110011001101100001100000000000000000030030000800800
+00000000000000000000000000000000000000000004400000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000004ff40000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000004ff40000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000ff00000000000000000000007777007777000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000f5575f000000000000000000000005ff5000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000f05575f000000000000000000000005005000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000f05575ff00000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000f055750000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000055750000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000055750000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000044440000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000dddd0000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000d000d000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000d001f000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000001f0010000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 04444440999999998888888800000000434b444b5555555555555555004444444444444444444400000000000000000000000000000000000000000000000000
-400440049555aaa98222222800030300444434445ffffff55ffffff5044444444444444444444440000000000000000000000000000000000000000000000000
-44444444955555a982000028000b0b30434444345ffffff55ffffff5444444444444444444444444000000000000000000000000000000000000000000000000
-4004400495555559800dd008300333b0344b43445ffffff55ffffff5466646646646545545545554000000000000000000000000000000000000000000000000
-4444444495555559800dd008b30bbb30444444445ffffff55ffffff5444444444444444444444444000000000000000000000000000000000000000000000000
-400440049a555559820000283b333bb3444444445ffffff55ffffff5466646646545545545545554000000000000000000000000000000000000000000000000
-444444449aaa555982222228b3bbb3bb444444445ffffdf55fdffff5444444444444444444444444000000000000000000000000000000000000000000000000
-400440049999999988888888bb333b33444444445ffffdf55fdffff5466646645545545545545554000000000000000000000000000000000000000000000000
-d66666670000000000000000030000004b4344435ffffdf55fdffff5444444445555555544444444000000000000000000000000000000000000000000000000
-5d66667600000000000000000b0303004444b4445ffffff55ffffff5466646545ffffff545545554000000000000000000000000000000000000000000000000
-55dddd660000000000000000033b0330434444345ffffff55ffffff5444444445ffffff544444444000000000000000000000000000000000000000000000000
-55dddd66000000000000000033b303b0b4434b445ffffff55ffffff5466645545ffffff545545554000000000000000000000000000000000000000000000000
-55dddd660000000000000000b3bb3b30444444445ffffff55ffffff5444444445ffffff544444444000000000000000000000000000000000000000000000000
-55dddd6600000000000000003b33bbb0444444445ffffff55ffffff5466645545ffffff545545554000000000000000000000000000000000000000000000000
-511111d60000000000000000b3bbb3b3444444445ffffff55ffffff5444444445ffffdf544444444000000000000000000000000000000000000000000000000
-1111111d0000000000000000bb333b33444444445555555555555555466545545ffffdf545545554000000000000000000000000000000000000000000000000
-000000000000000000000000000000004be34e430000000000000000444444445ffffdf544444444000000000000000000000000000000000000000000000000
-000000000000000000000000000000004444b4440000000000000000466545545ffffff545545554000000000000000000000000000000000000000000000000
-00000000000000000000000000000000e3e4e4340000000000000000444444445ffffff544444444000000000000000000000000000000000000000000000000
-00000000000000000000000000000000b4434b4e0000000000000000465545545ffffff545545554000000000000000000000000000000000000000000000000
-00000000000000000000000000000000444444440000000000000000444444445ffffff544444444000000000000000000000000000000000000000000000000
-00000000000000000000000000000000444444440000000000000000465545545ffffff545545554000000000000000000000000000000000000000000000000
-00000000000000000000000000000000444444440000000000000000444444445ffffff544444444000000000000000000000000000000000000000000000000
+400440049555aaa98222222800030300444434445444444554444445044444444444444444444440000000000000000000000000000000000000000000000000
+44444444955555a982000028000b0b30434444345444444554444445444444444444444444444444000000000000000000000000000000000000000000000000
+4004400495555559800dd008300333b0344b43445444444554444445466646646646545545545554000000000000000000000000000000000000000000000000
+4444444495555559800dd008b30bbb30444444445444444554444445444444444444444444444444000000000000000000000000000000000000000000000000
+400440049a555559820000283b333bb3444444445444444554444445466646646545545545545554000000000000000000000000000000000000000000000000
+444444449aaa555982222228b3bbb3bb4444444454444d4554d44445444444444444444444444444000000000000000000000000000000000000000000000000
+400440049999999988888888bb333b334444444454444d4554d44445466646645545545545545554000000000000000000000000000000000000000000000000
+d66666670000000000000000030000004b43444354444d4554d44445444444445555555544444444000000000000000000000000000000000000000000000000
+5d66667600000000000000000b0303004444b4445444444554444445466646545444444545545554000000000000000000000000000000000000000000000000
+55dddd660000000000000000033b0330434444345444444554444445444444445444444544444444000000000000000000000000000000000000000000000000
+55dddd66000000000000000033b303b0b4434b445444444554444445466645545444444545545554000000000000000000000000000000000000000000000000
+55dddd660000000000000000b3bb3b30444444445444444554444445444444445444444544444444000000000000000000000000000000000000000000000000
+55dddd6600000000000000003b33bbb0444444445444444554444445466645545444444545545554000000000000000000000000000000000000000000000000
+511111d60000000000000000b3bbb3b34444444454444445544444454444444454444d4544444444000000000000000000000000000000000000000000000000
+1111111d0000000000000000bb333b334444444455555555555555554665455454444d4545545554000000000000000000000000000000000000000000000000
+000000000000000000000000000000004be34e4300000000000000004444444454444d4544444444000000000000000000000000000000000000000000000000
+000000000000000000000000000000004444b4440000000000000000466545545444444545545554000000000000000000000000000000000000000000000000
+00000000000000000000000000000000e3e4e4340000000000000000444444445444444544444444000000000000000000000000000000000000000000000000
+00000000000000000000000000000000b4434b4e0000000000000000465545545444444545545554000000000000000000000000000000000000000000000000
+00000000000000000000000000000000444444440000000000000000444444445444444544444444000000000000000000000000000000000000000000000000
+00000000000000000000000000000000444444440000000000000000465545545444444545545554000000000000000000000000000000000000000000000000
+00000000000000000000000000000000444444440000000000000000444444445444444544444444000000000000000000000000000000000000000000000000
 00000000000000000000000000000000444444440000000000000000455545545555555545545554000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -985,13 +982,13 @@ __gff__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ff000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __map__
-00000000090909090909090909000000ed00c400c5c60000000000000000c60000ed5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5eec00000000000000000000000000000000ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-0000005f5f6600000000660000000009edc400c500c300c6c6c600c5c4c5000000ed000000000000004e4e4e4e4e00000000ec00000000000000000000000000000000ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-76005f795f0000000000767700000009ed78c1c20000c7c7c4c7c6c6c30000c7c6ed00005e000000000000004e4e00000000ec00000000000000000000000000000000ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-090000005f000000005f000000000000edc6d1d2c4c4c7c7c7c3c700c400c60000ed00005e5e000000000000004e00000000ed00000000000000005050505050000000ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-660000005f6600005f5f474849000000ed00005fc5c7c7c7c5c7c4c400c500c300ed00005e00000000000000000000000000ed00000000000000500000000000000000ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000078795f760000795f575859000000edc500c400c3c5c4c7c6c400c300000000ed00000000000000005e5e5e5e6e006e00ed00000000000000000000000000000000ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000437e00004353676869004300edc5c6000000c700c3c5c70000c6000000ed000000534353435e1a1a1a5e53534300ed00000000000000000000000000000000ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000000005f5f005f00005f5f5f5f0000ed00c400c5c60000000000000000c60000ed5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5eec00000000000000000000000000000000ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000000000000000000000000005f0000edc400c500c300c6c6c600c5c4c5000000ed000000000000004e4e4e4e4e00000000ec00000000000000000000000000000000ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+7600005f000000000000000000000000ed78c1c20000c7c7c4c7c6c6c30000c7c6ed00005e000000000000004e4e00000000ec00000000000000000000000000000000ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+5f00000000000000005f000000000000edc6d1d2c4c4c7c7c7c3c700c400c60000ed00005e5e000000000000004e00000000ed00000000000000005050505050000000ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+665f000000000000005f474849000000ed00005fc5c7c7c7c5c7c4c400c500c300ed00005e00000000000000000000000000ed00000000000000500000000000000000ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000787900000000005f575859000000edc500c400c3c5c4c7c6c400c300000000ed00000000000000005e5e5e5e6e006e00ed00000000000000000000000000000000ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000437e00004353676869004300edc5c6000000c700c3c5c70000c6000000ed000000534353435e0000005e53534300ed00000000000000000000000000000000ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 44546454446444644464446464445454ed00000000000000000000000000000000ed44644454646444446464444464446444ed44644464645444446454644464646444ed000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 ddddddddddddddddddddddddddddddddfdddddddddddddddddddddddddddddddddfdddddddddddddddddddddddddddddddddfdddddddddddddddddddddddddddddddddfe000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000005e5e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
