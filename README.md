@@ -3,28 +3,34 @@
 
 v.1.0.1 - 23/04/2018
 
-Added : - AABB Collisions.
-	- The player's character has now a state called A.State which define which 		sprite/action to use.
-	- The code is now easier to read, it's now separated within tabs (Zombies, Player, 		Draw, ...).
-	- The HUD has now a noise bar associated with a number corresponding to the noise 		you make. The bigger it is, more the zombies will be attracted by you.
+Added : 
+- AABB Collisions.
+- The player's character has now a state called A.State which define which sprite/action to use.
+- The code is now easier to read, it's now separated within tabs (Zombies, Player, Draw, ...).
+- The HUD has now a noise bar associated with a number corresponding to the noise you make. The bigger it is, more the zombies will be attracted by you.
 
-Changes : - The hitboxes of the zombies are now bigger.
-	  - The hitboxes of the player is now thinner.
-	  - The zombies have now 7HP instead of 15HP.
-	  - The zombies cannot walk through obstacles.
+Changes : 
+- The hitboxes of the zombies are now bigger.
+- The hitboxes of the player is now thinner.
+- The zombies have now 7HP instead of 15HP.
+- The zombies cannot walk through obstacles.
 
-Bugfixes : - Fixed a bug where the bullet wouldn't hit the zombie
-	   - Fixed a bug where you the only way to shoot was to spam the keys. This is now 		   fixed by using a cooldown.
+Bugfixes : 
+- Fixed a bug where the bullet wouldn't hit the zombie
+- Fixed a bug where you the only way to shoot was to spam the keys. This is now fixed by using a cooldown.
 
-To do : - Fix obstacles that are shown but are not solid when changing maps.
-	- Fix the zombies that one shot you.
-	- Fix the invincibility time.
-	- Make the zombies come from underground with an animation which let the player
-	the time to react to the spawning.
-	- Make interactions.
-	- Make zombies follow you even when off-screen --> Don't delete the zombies anymore.
+To do : 
+- Fix obstacles that are shown but are not solid when changing maps.
+- Fix the zombies that one shot you.
+- Fix the invincibility time.
+- Make the zombies come from underground with an animation which let the player
+the time to react to the spawning.
+- Make interactions.
+- Make zombies follow you even when off-screen --> Don't delete the zombies anymore.
 
 
+
+Pico8 - The Walking Dead Protoype
 Thomas Barré-Pitous.
 
 
