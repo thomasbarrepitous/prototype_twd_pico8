@@ -1,25 +1,56 @@
 # prototype_twd_pico8
 
 
-v.1.0.1 - 23/04/2018
+## v.1.0.2 - 24/04/2018
 
-Added : 
+### Added : 
+ - Implemented interactions with objects by using the Down button.
+ - Invincibility is now triggered after being hurt by a zombie. Your character will be blinking whithin that period of time.
+ - You can now enter houses.
+ - There is now sound when the game is over, the play is hurt and when entering a house.
+
+### Changes :  
+- Changed the zombies sprite. They are way scarier.
+- Some maps have been changed.
+- When you're hit by a zombie, a little explosion show up on the top of you and you become all red for a second.
+
+### Bugfixes : 
+- You now no longer have to jump to go to the first level when being in the second one.
+- The zombies no longer one shot you.
+- Fixed a bug where the obstacles were drawn but not solid.
+
+### To do : 
+- Make zombies follow you off screen.
+- Make zombies hit obstacles when blocked.
+- Make the zombies coming from the ground.
+- Make the zombies coming in the house after some time.
+- Find a goal.
+
+
+                                        Pico8 - The Walking Dead Protoype.
+                                              Thomas Barré-Pitous.
+
+----------------------------------------------------------------------------------------------------------------------------
+
+## v.1.0.1 - 23/04/2018
+
+### Added : 
 - AABB Collisions.
 - The player's character has now a state called A.State which define which sprite/action to use.
 - The code is now easier to read, it's now separated within tabs (Zombies, Player, Draw, ...).
 - The HUD has now a noise bar associated with a number corresponding to the noise you make. The bigger it is, more the zombies will be attracted by you.
 
-Changes : 
+### Changes : 
 - The hitboxes of the zombies are now bigger.
 - The hitboxes of the player is now thinner.
 - The zombies have now 7HP instead of 15HP.
 - The zombies cannot walk through obstacles.
 
-Bugfixes : 
+### Bugfixes : 
 - Fixed a bug where the bullet wouldn't hit the zombie
 - Fixed a bug where you the only way to shoot was to spam the keys. This is now fixed by using a cooldown.
 
-To do : 
+### To do : 
 - Fix obstacles that are shown but are not solid when changing maps.
 - Fix the zombies that one shot you.
 - Fix the invincibility time.
@@ -30,9 +61,10 @@ the time to react to the spawning.
 
 
 
-Pico8 - The Walking Dead Protoype
-Thomas Barré-Pitous.
+                                      Pico8 - The Walking Dead Protoype.
+                                              Thomas Barré-Pitous.
 
+----------------------------------------------------------------------------------------------------------------------------
 
 -- CONCEPT --
 
