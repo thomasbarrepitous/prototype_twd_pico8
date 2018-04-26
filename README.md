@@ -1,6 +1,41 @@
 # prototype_twd_pico8
 
 
+## v.1.0.3 - 26/04/2018
+
+Hello ! Lately, seeing that the prototype seemed to be soon "finished", I started to think of a goal for the game. I had some ideas :
+ - You have a timer (Let's say 5 minutes) and you have to survive for 5 minutes. It would be somewhat impossible to survive without looking for better items or hiding in houses, which would force the player to run away.
+ - You also have a timer but this is now something like a best score system. You have to survive long enough to break your record. You could also change difficulties.
+ - Something without timer and more of a survival game like Minecraft. You can interact with houses, make one your own house and upgrade your stuff to survive.
+ - A maze where you have to find your way to the end of the map. 
+
+If you have any idea don't hesitate to comment on the post that I'll soon do on the PICO8 forum.
+
+### Added : 
+ - The zombies now follow you off-screen !
+ - The zombies will enter the houses after some time if you are hiding too much. 
+ - The zombies are now coming from the ground when spawning, they are invincible and they can't harm you within that time.
+
+### Changes :  
+- Some maps have been changed and I will try to improve them overtime.
+- The sprite-sheet has been remade (Not the sprites but their organisations) because they were on the same memory adress as the bottom of the map.
+
+### Bugfixes : 
+- Fixed a bug where the zombies followed you off-screen but didn't change map. It resulted that they were stuck on the edge of the map.
+- Fixed a bug where the zombies stopped moving when drawn.
+
+### To do : 
+- Add more maps.
+- Change the menu.
+- Change the HUD.
+- Add/Change sounds.
+
+
+                                        Pico8 - The Walking Dead Protoype.
+                                              Thomas Barré-Pitous.
+
+----------------------------------------------------------------------------------------------------------------------------
+
 ## v.1.0.2 - 24/04/2018
 
 ### Added : 
