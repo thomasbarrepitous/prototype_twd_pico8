@@ -1,7 +1,7 @@
 # prototype_twd_pico8
 
 
-## v.1.0.4 - 26/04/2018
+## v.1.0.4 - 27/04/2018
 
 In response to the last post that I wrote yesterday with the 1.0.3 version I choose to go with a Time Attack, maze, platform game. It sounds complicated but it isn't really the case. You have to make your way through the "maze", which is a very easy one, within the time that you have and without dying to zombies or falling.
 
@@ -21,8 +21,8 @@ In response to the last post that I wrote yesterday with the 1.0.3 version I cho
 - Change the menu.
 - Add/Change sounds.
 
-Side-note : 
 
+Side-note : 
 The map is still incomplete but it gives an idea on how it'll look after some improvements.
 
 
