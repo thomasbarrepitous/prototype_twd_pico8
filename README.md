@@ -1,6 +1,36 @@
 # prototype_twd_pico8
 
 
+## v.1.0.4 - 27/04/2018
+
+In response to the last post that I wrote yesterday with the 1.0.3 version I choose to go with a Time Attack, maze, platform game. It sounds complicated but it isn't really the case. You have to make your way through the "maze", which is a very easy one, within the time that you have and without dying to zombies or falling.
+
+### Added : 
+ - New sprites, maps have been improved !
+ - More maps but still incomplete.
+ - A new HUD now displaying you HP. More will come.
+
+### Changes :  
+- The number of zombies that can spawn has been increased from 5 to 10. I'm considering increasing this number again soon.
+
+### Bugfixes : 
+- Fixed a bug where you couldn't go back after the 4th map.
+
+### To do : 
+- Add obstacles to the maps.
+- Change the menu.
+- Add/Change sounds.
+
+
+Side-note : 
+The map is still incomplete but it gives an idea on how it'll look after some improvements.
+
+
+                                        Pico8 - The Walking Dead Protoype.
+                                              Thomas Barré-Pitous.
+
+----------------------------------------------------------------------------------------------------------------------------
+
 ## v.1.0.3 - 26/04/2018
 
 Hello ! Lately, seeing that the prototype seemed to be soon "finished", I started to think of a goal for the game. I had some ideas :
