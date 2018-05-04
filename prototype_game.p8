@@ -85,7 +85,7 @@ end
 
 function _init()
 	menuinit()
-	game_state=4
+	game_state=3
 end
 
 function gameinit()
@@ -331,6 +331,7 @@ function last_map_event()
 			first_time = false
 		end
 		if z_number==0 then
+			end_run = time()
 			game_state=3
 		end
 	end 
@@ -491,7 +492,19 @@ function draw_win()
 				pset(x*2+y%2,y*2,8+(t/16+((x-32)/(y-32)))%8)  
 			end 
 		end 
-		print("you survived !", 64 - (14 * 2), 60) 
+		print("you survived !", 64 - (14 * 2), 60, 0) 
+		print("your time : ", 64 - (10*2),70,0)
+		-- timer
+		act = time()-end_run
+		minutes = flr(act/60)
+		seconds = flr(act%60)
+		mil_seconds = flr((act%1)*10000)
+		
+		print(minutes,43,78,0)
+		print(":",51,78,0)
+		print(seconds,55,78,0)
+		print(":",63,78,0)
+		print(mil_seconds,68,78,0)
 		flip() 
 	end
 	game_state = 4
