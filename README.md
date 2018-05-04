@@ -1,6 +1,45 @@
 # prototype_twd_pico8
 
 
+## v.1.0.5 - 04/05/2018
+
+So this is version is a bit late and I planned on release it yesterday but I tried to improve the gameplay a little bit as well as fixing some bugs.
+This is maybe the last version of this game that I'll do on Pico8 since it was just a prototype and I'm planning on making an another one but I really feel that it miss something and I'll try to go back on this one later in the month.
+
+### Added : 
+ - New maps (with a final one where you'll have to face every zombie that you've spawned, so "take your time" but not too much).
+ - The game has now a timer which indicates you the time since you've started the level. It's a time attack now !
+ - Added a goal for the game, before there was no real indication on how to win or what to do. This is now done, you have to go to the last map without dying and killing every zombies on the last map (or before) as fast as possible.
+
+### Changes :  
+- The number of zombies that can spawn has been increased from 10 to 25. 
+- The life points of the zombies have been decreased from 7 to 5.
+- The damage from the bullet has been increased from 1 to 2. I'm doing this changes because I feel like there is no real way to win the game because the zombies are way to hard. Let me know if you disagree.
+- The zombies no longer stop when the the noises are at 0. I feel like it made the game a little bit clunky,for example, sometimes, the zombies are running after you really fast and suddenly stop when you hit 0 which feels weird to me.
+- A brand new HUD, including the timer and some changes like removing the noise number.
+
+### Bugfixes : 
+- Fixed a bug where the zombies stopped for no reason.
+- Fixed a bug where you were stuck in an infinite loop at the 11th map.
+- Fixed a bug where you would not die from falling.
+- Fixed a bug where the zombies were following you even in maps they shouldn't.
+- Fixed a bug where zombies were spawning in the void.
+
+### To do : 
+- Add obstacles to the maps.
+- Change the menu.
+- Add/Change sounds.
+
+
+Side-note : 
+I'll make an update concerning my new prototype which is way more survival zombies oriented and definitively less platform-based. The link will be up in less than one or two day if you are interested.
+
+
+                                        Pico8 - The Walking Dead Protoype.
+                                              Thomas Barré-Pitous.
+
+----------------------------------------------------------------------------------------------------------------------------
+
 ## v.1.0.4 - 27/04/2018
 
 In response to the last post that I wrote yesterday with the 1.0.3 version I choose to go with a Time Attack, maze, platform game. It sounds complicated but it isn't really the case. You have to make your way through the "maze", which is a very easy one, within the time that you have and without dying to zombies or falling.
