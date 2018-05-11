@@ -85,7 +85,7 @@ end
 
 function _init()
 	menuinit()
-	game_state=3
+	game_state=4
 end
 
 function gameinit()
